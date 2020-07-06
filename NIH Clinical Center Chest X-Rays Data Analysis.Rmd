@@ -1,0 +1,98 @@
+---
+title: "NIH Clinical Center Chest X-Rays Data Analysis"
+author: "Serena Gibbons"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## I. Introduction
+In this project I would like to show a multi-panel plot of the 14 common thorax disease categories included in the NIH Chest X-Ray Dataset obtained from https://nihcc.app.box.com/v/ChestXray-NIHCC. I would like to use this dataset to plot visualizations of patient population distributions and their clinical diagnoses, including the frequency of the 14 disease labels distributed among gender and age.
+
+## II. The Data
+In this dataset, chest X-Ray images are classified as one of 15 classes (14 diseases, and "No findings"). The dataset was extracted from the clinical picture archiving and communication system (PACS) database at National Institutes of Health Clinical Center and consists of approximately 60% of all frontal chest x-rays in the hospital. The dataset consists of 112,120 fontal view x-ray images of 30,805 unique patients with the 14 disease image labels (where each image can have multiple labels). This data was collected with the goal to achieve better clinically relevant computer aided detection and diagnosis (CAD) of chest x-rays in medical centers. I am interested in using this data to observe the distribution of different patient populations among the 14 pathologies. 
+
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=75)}
+df <- read.csv("Data_Entry_2017.csv")
+head(df)
+summary(df)
+```
+
+## III. Data Cleaning and Manipulation
+There are a few values in Patient Age that do not make sense (ranging from 148 to 414). These could possibly be age in months, weeks, or days but it is impossible to know for sure so these rows will be removed with a cut off of 100. I will also remove columns that will not be used (such as image index and columsn pertaining to image dimensions).
+
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=70)}
+mydata <- df[-(which(df$Patient.Age>100)), ] # Remove rows with Patient Age greater than 100
+mydata <- mydata[, c(2:6)] # Remove unused columns
+head(mydata)
+```
+
+To analzye the distributions of single diagnoses without comorbiditie, I created a new data frame without rows of multiple diagnoses in the Finding Labels column (e.g. "Cardiomegaly|Effusion").
+
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=75)}
+
+# create new data frame of single diagnoses
+mydata_single <- mydata[with(mydata, which(Finding.Labels == "Cardiomegaly" | Finding.Labels == "Emphysema" | Finding.Labels == "Effusion" | Finding.Labels == "Hernia" | Finding.Labels == "Nodule" | Finding.Labels == "Atelectasis" | Finding.Labels == "Pleural_Thickening" | Finding.Labels == "Mass" | Finding.Labels == "Edema" | Finding.Labels == "Consolidation" | Finding.Labels == "Infiltration" | Finding.Labels == "Fibrosis" | Finding.Labels == "Pneumonia" | Finding.Labels == "Pneumothorax" | Finding.Labels == "No Finding")),]
+
+```
+
+## IV. Patient population distributions
+
+I will create 3 different types of visualizations: age distributions of chest X-rays by patient gender, frequncies of pathologies, and pathologies among patient ages.
+
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=75)}
+x11(title="Age distributions by gender",height=6,width=4)
+layout(matrix(c(1, 2), nrow = 1)) # create 2 panel plotting windows
+par(mar = c(4.1, 4.1, 3.6, 0))
+mydata_singleM <- mydata_single[which(mydata_single$Patient.Gender=="M"),] 
+mydata_singleF <- mydata_single[which(mydata_single$Patient.Gender=="F"),] 
+hist(mydata_singleM$Patient.Age, xlab = "Age", main = "Males", ylim = c(0, 6500))
+hist(mydata_singleF$Patient.Age, col = "grey", xlab = "Age", main = "Females", ylim=c(0,6500))
+```
+
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=75)}
+diseaseFreq <- as.data.frame(table(mydata$Finding.Labels))
+names(diseaseFreq) <- c("Disease", "Freq")
+singleDisease <- diseaseFreq[with(diseaseFreq, which(Disease == "Cardiomegaly" | Disease == "No Finding" | Disease == "Emphysema" | Disease == "Effusion" | Disease == "Hernia" | Disease == "Nodule" | Disease == "Atelectasis" | Disease == "Pleural_Thickening" | Disease == "Mass" | Disease == "Edema" | Disease == "Consolidation" | Disease == "Infiltration" | Disease == "Fibrosis" | Disease == "Pneumonia" | Disease == "Pneumothorax")),]
+x11(title="Age distributions by gender",height=6,width=4)
+par(mar = c(4, 5, 2, 1))
+barplot(singleDisease$Freq, names.arg = singleDisease$Disease, las = 1, cex.names = 0.5, horiz = TRUE, xlab = "Frequency", main = "Pathology Frequencies")
+```
+
+
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=75)}
+# Create histograms of each disease pathology among patient ages
+x11(height=7,width=5)
+layout(matrix(c(1:4), nrow = 2)) # create 4 panel plotting window
+par(mar = c(4, 4, 3.6, 0))
+hist(mydata_single[which(mydata_single$Finding.Labels=="Atelectasis"),]$Patient.Age, xlab = "Age", main = "Atelectasis")
+hist(mydata_single[which(mydata_single$Finding.Labels=="Cardiomegaly"),]$Patient.Age, xlab = "Age", main = "Cardiomegaly")
+hist(mydata_single[which(mydata_single$Finding.Labels=="Consolidation"),]$Patient.Age, xlab = "Age", main = "Consolidation")
+hist(mydata_single[which(mydata_single$Finding.Labels=="Effusion"),]$Patient.Age, xlab = "Age", main = "Effusion")
+x11(height=7,width=5)
+layout(matrix(c(1:4), nrow = 2)) # Create 4 panel plotting window
+par(mar = c(4, 4, 3.6, 0))
+hist(mydata_single[which(mydata_single$Finding.Labels=="Emphysema"),]$Patient.Age, xlab = "Age", main = "Emphysema")
+hist(mydata_single[which(mydata_single$Finding.Labels=="Edema"),]$Patient.Age, xlab = "Age", main = "Edema")
+hist(mydata_single[which(mydata_single$Finding.Labels=="Fibrosis"),]$Patient.Age, xlab = "Age", main = "Fibrosis")
+hist(mydata_single[which(mydata_single$Finding.Labels=="Hernia"),]$Patient.Age, xlab = "Age", main = "Hernia")
+x11(height=7,width=5)
+layout(matrix(c(1:6), nrow = 3)) # Create 6 panel plotting window
+par(mar = c(4, 4, 3.6, 0))
+hist(mydata_single[which(mydata_single$Finding.Labels=="Infiltration"),]$Patient.Age, xlab = "Age", main = "Infiltration")
+hist(mydata_single[which(mydata_single$Finding.Labels=="Mass"),]$Patient.Age, xlab = "Age", main = "Mass")
+hist(mydata_single[which(mydata_single$Finding.Labels=="Nodule"),]$Patient.Age, xlab = "Age", main = "Nodule")
+hist(mydata_single[which(mydata_single$Finding.Labels=="Pneumothorax"),]$Patient.Age, xlab = "Age", main = "Pneumothorax")
+hist(mydata_single[which(mydata_single$Finding.Labels=="Pneumonia"),]$Patient.Age, xlab = "Age", main = "Pneumonia")
+hist(mydata_single[which(mydata_single$Finding.Labels=="Pleural_Thickening"),]$Patient.Age, xlab = "Age", main = "Pleural_Thickening")
+```
+
+Note: I had originally wanted to create a single 14-panel plot using layout(matrix(c(1:14), nrow = 7)) however I recieved the error message: "Error in plot.new() : figure margins too large" when plotting the histograms.
+
+## References:
+
+NIH Clinical Center provides one of the largest publicly available chest x-ray datasets to scientific community. (2017, September 27). Retrieved from https://www.nih.gov/news-events/news-releases/nih-clinical-center-provides-one-largest-publicly-available-chest-x-ray-datasets-scientific-community 
+
+Wang X, Peng Y, Lu L, Lu Z, Bagheri M, Summers RM. ChestX-ray8: Hospital-scale Chest X-ray Database and Benchmarks on Weakly-Supervised Classification and Localization of Common Thorax Diseases. IEEE CVPR 2017, http://openaccess.thecvf.com/content_cvpr_2017/papers/Wang_ChestX-ray8_Hospital-Scale_Chest_CVPR_2017_paper.pdf
